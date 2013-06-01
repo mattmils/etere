@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<!--[if lt IE 7 ]><html class="ie ie6" lang="en" ng-app> <![endif]-->
+<!--[if IE 7 ]><html class="ie ie7" lang="en" ng-app> <![endif]-->
+<!--[if IE 8 ]><html class="ie ie8" lang="en" ng-app> <![endif]-->
+<!--[if (gte IE 9)|!(IE)]><!--><html lang="en" ng-app> <!--<![endif]-->
+<head>
+
+<!-- Basic Page Needs
+  ================================================== -->
+  <meta charset="utf-8">
+  <title>Etere - A aria2 web interface</title>
+  <meta name="description" content="">
+  <meta name="author" content="mattmils">
+
+<!-- Mobile Specific Metas
+  ================================================== -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+<!-- CSS
+  ================================================== -->
+  <link rel="stylesheet" href="stylesheets/base.css">
+  <link rel="stylesheet" href="stylesheets/skeleton.css">
+  <link rel="stylesheet" href="stylesheets/layout.css">
+  <link rel="stylesheet" href="stylesheets/etere.css">
+  <link rel="stylesheet" href="stylesheets/font-awesome.min.css">
+
+<!--[if lt IE 9]>
+<script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+<![endif]-->
+
+<!-- Favicons
+  ================================================== -->
+  <link rel="shortcut icon" href="images/favicon.ico">
+  <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+  <link rel="apple-touch-icon" sizes="72x72" href="images/apple-touch-icon-72x72.png">
+  <link rel="apple-touch-icon" sizes="114x114" href="images/apple-touch-icon-114x114.png">
+
+  <script type="text/javascript" src="js/lib/angular.js"></script>
+  <script type="text/javascript" src="js/lib/numeral.min.js"></script>
+  <script type="text/javascript" src="js/task.js"></script>
+
+</head>
+<body>
+
+<!-- Primary Page Layout
+  ================================================== -->
+
+  <!-- Delete everything in this .container and get started on your own site! -->
+
+  <div class="container">
+    <div class="sixteen columns">
+      <h1 class="remove-bottom" style="margin-top: 40px">Etere</h1>
+      <h5>Version 0.2</h5>
+      <hr />
+      <div class="container" ng-controller="StatusCtrl">
+        <h4><i class="icon-download"></i> {{humanReadable(status.downloadSpeed, true)}}<h4>
+          <h4><i class="icon-upload"></i> {{humanReadable(status.uploadSpeed, true)}}</h4>
+        </div>
+      </div>
+
+      <div id="tasks" class="columns sixteen" ng-controller="TaskCtrl">
+        
+        <!-- Commands -->
+        <button ng-click="unpauseAll()"><i class="icon-play"></i> Start All</button>
+        <button ng-click="pauseAll()"><i class="icon-stop"></i> Pause All</button>
+        <button ng-click="removeFinished()"><i class="icon-trash"></i> Remove completed</button>
+        <button ng-click="refresh()"><i class="icon-refresh"></i> Refresh</button>
+        <button ng-click="autorefresh()"><i class="icon-trash"></i> Autorefresh</button>
+        <button ng-click="stoprefresh()"><i class="icon-trash"></i> Stop Autorefresh</button>
+        
+        <h3><i class="icon-chevron-down"></i> Active tasks ({{countActive}})</h3>
+        
+        <!-- No downloads -->
+        <div class="row" ng-hide="countActive"><h4>There are no active downloads at the moment.</h4></div>
+
+        <!-- List actives tasks -->
+        <div class="row active-task" ng-repeat="task in tasks | filter:isActive">
+          
+          <div class="column twelve task-title">
+            <h5><i class="icon-cloud-download red"></i> <a href="#" ng-click="select(task);">{{extractName(task)}}</a></h5>
+          </div>
+          
+          <div class="column two">
+            <span class="label label-blue">{{progress(task)}}%</span>
+          </div>
+          
+          <div class="column two">
+            <span><a ng-click="pause(task.gid);"><i class="icon-pause"></i></a></span>
+            <span><a ng-click="remove(task.gid);"><i class="icon-remove"></i></a></span>
+          </div>
+          <div class="clearfix small-step"></div>
+          
+          <div class="columns fifteen progress-bar">
+            <div class="striped animated" style="width: {{progress(task)}}%; background-color: {{progressColor(task)}};"></div>
+          </div>
+          <div class="clearfix small-step"></div>
+          
+          <div class="column two">
+            <span><i class="icon-download"></i> {{humanReadable(task.downloadSpeed, true)}}</span>
+          </div>
+          
+          <div class="column two torrent" ng-if="task.bittorrent">
+            <span><i class="icon-upload"></i> {{humanReadable(task.uploadSpeed, true)}}</span>
+          </div>
+          
+          <div class="column two">
+            <span><i class="icon-time"></i> {{etc(task)}}</span>
+          </div>
+          
+          <div class="column two">
+            <span><i class="icon-download-alt"></i> {{humanReadable(task.completedLength)}}/{{humanReadable(task.totalLength)}}</span>
+          </div>
+          
+          <div class="column two torrent" ng-if="task.bittorrent">
+            <span><i class="icon-upload-alt"></i> {{humanReadable(task.uploadLength)}}</span>
+          </div>
+          
+          <div class="column two torrent" ng-if="task.bittorrent">
+            <span><i class="icon-exchange"></i> {{ratio(task)}}</span>
+          </div>
+
+          <div class="column two torrent" ng-if="task.bittorrent">
+            <span><i class="icon-user"></i> {{task.numSeeders}}</span>
+          </div>
+
+          <div class="column two torrent" ng-if="task.bittorrent">
+            <span><i class="icon-sitemap"></i> {{task.connections}}</span>
+          </div>
+
+          <!-- Additional informations about the selected task -->
+          <div class="columns" ng-if="isSelected(task)">
+            <div class="clearfix small-step"></div>
+            <div ng-repeat="file in task.files">
+              <div class="columns">
+                <small class="label label-blue">{{progressFile(file)}}%</small>
+                <small>{{fileFromPath(file.path)}}</small>
+                <small>({{humanReadable(file.completedLength)}}/{{humanReadable(file.length)}})</small>
+              </div>
+              <div class="clearfix"></div>
+            </div>
+          </div>
+        </div> <!-- active tasks -->
+
+        <h3><i class="icon-chevron-down"></i> Other tasks ({{countNotActive}})</h3>
+
+        <div class="row" ng-hide="countNotActive"><h4>No downloads in the waiting queue.</h4></div>
+
+        <!-- Waiting tasks -->
+        <div class="row active-task" ng-repeat="task in tasks | filter:isNotActive">
+          <div class="column twelve task-title">
+            <h5><i class="icon-cloud-download red"></i> <a href="#" ng-click="select(task);">{{extractName(task)}}</a></h5>
+          </div>
+          <div class="column two">
+            <span class="label label-blue">{{progress(task)}}%</span>
+          </div>
+          <div class="column two">
+            <span><a ng-click="pause(task.gid);"><i class="icon-pause"></i></a></span>
+            <span><a ng-click="remove(task.gid);"><i class="icon-remove"></i></a></span>
+          </div>
+          <div class="clearfix small-step"></div>
+          <div class="columns fifteen progress-bar">
+            <div class="striped" style="width: {{progress(task)}}%; background-color: #666666;"></div>
+          </div>
+          <div class="clearfix small-step"></div>
+          <div class="column two">
+            <span><i class="icon-download-alt"></i> {{humanReadable(task.completedLength)}}/{{humanReadable(task.totalLength)}}</span>
+          </div>
+
+          <div class="columns" ng-if="isSelected(task)">
+            <div class="clearfix small-step"></div>
+            <div ng-repeat="file in task.files">
+              <div class="columns">
+                <small class="label label-blue">{{progressFile(file)}}%</small>
+                <small>{{fileFromPath(file.path)}}</small>
+                <small>({{humanReadable(file.completedLength)}}/{{humanReadable(file.length)}})</small>
+              </div>
+              <div class="clearfix"></div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </div><!-- container -->
+
+
+<!-- End Document
+  ================================================== -->
+</body>
+</html>
